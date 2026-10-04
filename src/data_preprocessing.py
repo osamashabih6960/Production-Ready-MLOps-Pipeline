@@ -1,60 +1,174 @@
-import os
 import pandas as pd
+from pathlib import Path
+
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 
-INPUT_PATH = "data/processed/ai4i2020.csv"
-OUTPUT_DIR = "data/processed"
+INPUT_PATH = Path("data/processed/ai4i2020.csv")
+OUTPUT_DIR = Path("data/processed")
 
 
-def preprocess_data():
+def load_data():
+    if not INPUT_PATH.exists():
+        raise FileNotFoundError(
+            f"Processed dataset not found: {INPUT_PATH}"
+        )
 
-    print("Starting data preprocessing...")
+    return pd.read_csv(INPUT_PATH)
 
-    # Load data
-    df = pd.read_csv(INPUT_PATH)
 
-    print(f"Original shape: {df.shape}")
-
-    # Remove unnecessary columns
+def clean_data(df):
+    # Identifier columns remove
     columns_to_drop = [
         "UDI",
-        "Product ID"
+        "Product ID",
+        "TWF",
+        "HDF",
+        "PWF",
+        "OSF",
+        "RNF"
     ]
 
-    df = df.drop(columns=columns_to_drop)
+    df = df.drop(
+        columns=columns_to_drop,
+        errors="ignore"
+    )
 
-    # Separate features and target
-    X = df.drop("Machine failure", axis=1)
+    # Missing values
+    if df.isnull().sum().sum() > 0:
+        df = df.dropna()
+
+    return df
+
+
+def prepare_features_target(df):
+    # Target
     y = df["Machine failure"]
 
-    # Convert categorical column into numerical columns
-    X = pd.get_dummies(X, columns=["Type"], drop_first=True)
+    # Features
+    X = df.drop(
+        columns=["Machine failure"]
+    )
 
-    # Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(
+    # Convert Type:
+    # L = 0, M = 1, H = 2
+    X["Type"] = X["Type"].map({
+        "L": 0,
+        "M": 1,
+        "H": 2
+    })
+
+    return X, y
+
+
+def split_data(X, y):
+    return train_test_split(
         X,
         y,
-        test_size=0.2,
+        test_size=0.20,
         random_state=42,
         stratify=y
     )
 
-    # Create directories
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # Save datasets
-    X_train.to_csv(f"{OUTPUT_DIR}/X_train.csv", index=False)
-    X_test.to_csv(f"{OUTPUT_DIR}/X_test.csv", index=False)
-    y_train.to_csv(f"{OUTPUT_DIR}/y_train.csv", index=False)
-    y_test.to_csv(f"{OUTPUT_DIR}/y_test.csv", index=False)
+def scale_features(X_train, X_test):
+    scaler = StandardScaler()
 
-    print("Preprocessing completed successfully!")
-    print(f"X_train: {X_train.shape}")
-    print(f"X_test:  {X_test.shape}")
-    print(f"y_train: {y_train.shape}")
-    print(f"y_test:  {y_test.shape}")
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    X_train_scaled = pd.DataFrame(
+        X_train_scaled,
+        columns=X_train.columns
+    )
+
+    X_test_scaled = pd.DataFrame(
+        X_test_scaled,
+        columns=X_test.columns
+    )
+
+    return X_train_scaled, X_test_scaled, scaler
+
+
+def save_data(
+    X_train,
+    X_test,
+    y_train,
+    y_test
+):
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    X_train.to_csv(
+        OUTPUT_DIR / "X_train.csv",
+        index=False
+    )
+
+    X_test.to_csv(
+        OUTPUT_DIR / "X_test.csv",
+        index=False
+    )
+
+    y_train.to_csv(
+        OUTPUT_DIR / "y_train.csv",
+        index=False
+    )
+
+    y_test.to_csv(
+        OUTPUT_DIR / "y_test.csv",
+        index=False
+    )
+
+    print("Processed datasets saved successfully.")
+
+
+def run():
+    print("Starting preprocessing...")
+
+    # Load
+    df = load_data()
+
+    print(f"Original shape: {df.shape}")
+
+    # Clean
+    df = clean_data(df)
+
+    print(f"After cleaning: {df.shape}")
+
+    # Features and target
+    X, y = prepare_features_target(df)
+
+    print(f"Features shape: {X.shape}")
+    print(f"Target shape: {y.shape}")
+
+    # Split
+    X_train, X_test, y_train, y_test = split_data(
+        X,
+        y
+    )
+
+    print(f"Training data: {X_train.shape}")
+    print(f"Testing data: {X_test.shape}")
+
+    # Scaling
+    X_train_scaled, X_test_scaled, scaler = scale_features(
+        X_train,
+        X_test
+    )
+
+    # Save
+    save_data(
+        X_train_scaled,
+        X_test_scaled,
+        y_train,
+        y_test
+    )
+
+    print("\nPreprocessing completed successfully.")
 
 
 if __name__ == "__main__":
-    preprocess_data()
+    run()

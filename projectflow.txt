@@ -1,37 +1,403 @@
-1.Create a repo :- Production-Ready-MLOps-Pipeline
-                -> git clone
-                -> cd
-                
-2. Create a project folder
-                -> data:-
-                        1.raw :- csv
-                        2.processed :- csv
+PROJECT FLOW — Production-Ready-MLOps-Pipeline
+============================================================
 
-                -> src:-
-                       1. data_ingestion :- (python src/data_ingestion.py)
-                                          
-                                          #.Purpose of ingestion
-                                          data/raw/ai4i2020.csv 
-                                                ↓
-                                          data_ingestion.py
-                                                ↓
-                                          Validate + Read
-                                                ↓
-                                          data/processed/ai4i2020.csv
+1. CREATE GITHUB REPOSITORY
+---------------------------
 
-                        2. data_preprocessing.py
-                        Processed Dataset
-                               ↓
-                        Remove unnecessary columns
-                               ↓
-                        Separate X and y
-                                 ↓
-                        Convert Type → numerical
-                                 ↓
-                          Train/Test Split
-                                 ↓
-                            X_train, X_test
-                            y_train, y_test
-                 
-                
+Repository:
+    Production-Ready-MLOps-Pipeline
 
+    ↓
+
+Clone:
+    git clone https://github.com/osamashabih6960/Production-Ready-MLOps-Pipeline.git
+
+    ↓
+
+Go inside:
+    cd Production-Ready-MLOps-Pipeline
+
+    ↓
+
+Virtual environment:
+    python -m venv .venv
+
+    ↓
+
+Activate:
+    .venv\Scripts\activate
+
+
+============================================================
+
+2. PROJECT FOLDER STRUCTURE
+---------------------------
+
+Production-Ready-MLOps-Pipeline/
+│
+├── data/
+│   ├── raw/
+│   │   └── ai4i2020.csv
+│   └── processed/
+│       ├── ai4i2020.csv
+│       ├── X_train.csv
+│       ├── X_test.csv
+│       ├── y_train.csv
+│       └── y_test.csv
+│
+├── src/
+│   ├── __init__.py
+│   ├── data_ingestion.py
+│   ├── data_preprocessing.py
+│   └── model_training.py
+│
+├── models/
+│   └── best_model.pkl
+│
+├── tests/
+├── notebooks/
+├── app/
+├── k8s/
+├── monitoring/
+├── .github/
+│   └── workflows/
+├── requirements.txt
+├── .gitignore
+├── dvc.yaml
+├── params.yaml
+└── README.md
+
+
+============================================================
+
+3. DATASET
+----------
+
+Dataset:
+    AI4I 2020 Predictive Maintenance Dataset
+
+Location:
+    data/raw/ai4i2020.csv
+
+Target:
+    Machine failure
+
+    0 → No Machine Failure
+    1 → Machine Failure
+
+
+============================================================
+
+4. DATA INGESTION
+-----------------
+
+File:
+    src/data_ingestion.py
+
+Run:
+    python src/data_ingestion.py
+
+Flow:
+
+    data/raw/ai4i2020.csv
+              ↓
+      data_ingestion.py
+              ↓
+         Read CSV
+              ↓
+      Validate Columns
+              ↓
+    data/processed/ai4i2020.csv
+
+Purpose:
+    1. Read raw dataset
+    2. Validate required columns
+    3. Create processed directory
+    4. Save processed copy
+
+
+============================================================
+
+5. DATA PREPROCESSING
+---------------------
+
+File:
+    src/data_preprocessing.py
+
+Run:
+    python src/data_preprocessing.py
+
+Flow:
+
+    data/processed/ai4i2020.csv
+              ↓
+         Load Dataset
+              ↓
+    Remove unnecessary columns
+              ↓
+    Remove leakage columns
+              ↓
+       Handle missing values
+              ↓
+      Convert Type → numerical
+              ↓
+       Separate X and y
+              ↓
+        Train/Test Split
+              ↓
+        Feature Scaling
+              ↓
+     Save processed datasets
+
+Removed columns:
+
+    UDI
+    Product ID
+    TWF
+    HDF
+    PWF
+    OSF
+    RNF
+
+Reason:
+
+    UDI / Product ID
+        → Identifier columns
+
+    TWF / HDF / PWF / OSF / RNF
+        → Failure-mode indicators
+        → Avoid target leakage
+
+Type conversion:
+
+    L → 0
+    M → 1
+    H → 2
+
+Train/Test Split:
+
+    Training → 80%
+    Testing  → 20%
+
+    random_state = 42
+    stratify = y
+
+Scaling:
+
+    StandardScaler
+
+Output:
+
+    data/processed/X_train.csv
+    data/processed/X_test.csv
+    data/processed/y_train.csv
+    data/processed/y_test.csv
+
+
+============================================================
+
+6. MODEL TRAINING
+-----------------
+
+File:
+    src/model_training.py
+
+Run:
+    python src/model_training.py
+
+Input:
+
+    X_train.csv
+    X_test.csv
+    y_train.csv
+    y_test.csv
+
+Flow:
+
+    Processed Data
+          ↓
+    Load Training/Test Data
+          ↓
+    Train Multiple Models
+          ↓
+       ┌───────────────┐
+       ↓               ↓
+    Logistic        Random
+    Regression      Forest
+       ↓               ↓
+    Evaluation      Evaluation
+       └───────┬───────┘
+               ↓
+        Compare Metrics
+               ↓
+        Select Best Model
+               ↓
+      models/best_model.pkl
+
+
+============================================================
+
+7. LOGISTIC REGRESSION
+----------------------
+
+Model:
+    LogisticRegression
+
+Configuration:
+    max_iter = 1000
+    random_state = 42
+
+Output:
+
+    Training logistic_regression...
+
+    Accuracy : ...
+    Precision: ...
+    Recall   : ...
+    F1 Score : ...
+
+
+============================================================
+
+8. RANDOM FOREST
+----------------
+
+Model:
+    RandomForestClassifier
+
+Configuration:
+    n_estimators = 200
+    class_weight = "balanced"
+    random_state = 42
+
+Output:
+
+    Training random_forest...
+
+    Accuracy : ...
+    Precision: ...
+    Recall   : ...
+    F1 Score : ...
+
+
+============================================================
+
+9. MODEL SELECTION
+------------------
+
+Models:
+
+    Logistic Regression
+             VS
+    Random Forest
+
+Metrics:
+
+    Accuracy
+    Precision
+    Recall
+    F1 Score
+
+Selection:
+
+    Highest F1 Score
+
+Flow:
+
+    Logistic Regression
+            ↓
+        Calculate F1
+            ↓
+    Random Forest
+            ↓
+        Calculate F1
+            ↓
+        Compare F1
+            ↓
+      Best F1 Model
+            ↓
+    models/best_model.pkl
+
+
+============================================================
+
+10. MLFLOW EXPERIMENT TRACKING
+------------------------------
+
+Experiment:
+    AI4I-Predictive-Maintenance
+
+Purpose:
+
+    Track experiments
+    Track parameters
+    Track metrics
+    Compare models
+    Store model artifacts
+
+Flow:
+
+    Model Training
+          ↓
+      MLflow Run
+          ↓
+    Parameters
+    Accuracy
+    Precision
+    Recall
+    F1 Score
+    Model Artifact
+          ↓
+       MLflow UI
+
+Each model gets a separate run:
+
+    Logistic Regression → MLflow Run
+    Random Forest       → MLflow Run
+
+Run:
+
+    mlflow ui
+
+Open:
+
+    http://127.0.0.1:5000
+
+
+============================================================
+
+11. DVC — DATA VERSION CONTROL
+------------------------------
+
+Purpose:
+
+    Track dataset versions separately from Git.
+
+Dataset:
+
+    data/raw/ai4i2020.csv
+
+If CSV is already tracked by Git:
+
+    git rm --cached data/raw/ai4i2020.csv
+
+Then:
+
+    dvc add data/raw/ai4i2020.csv
+
+DVC creates:
+
+    data/raw/ai4i2020.csv.dvc
+
+Concept:
+
+    Git
+      ↓
+    Code + Configuration
+
+    DVC
+      ↓
+    Dataset Versioning
+
+
+============================================================

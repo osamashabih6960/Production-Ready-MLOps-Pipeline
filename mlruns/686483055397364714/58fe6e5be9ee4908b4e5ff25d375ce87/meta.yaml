@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/osama/Desktop/MLOps/Production-Ready-MLOps-Pipeline/mlruns/686483055397364714/58fe6e5be9ee4908b4e5ff25d375ce87/artifacts
+end_time: 1791108049680
+entry_point_name: ''
+experiment_id: '686483055397364714'
+lifecycle_stage: active
+run_id: 58fe6e5be9ee4908b4e5ff25d375ce87
+run_name: random_forest
+run_uuid: 58fe6e5be9ee4908b4e5ff25d375ce87
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1791108044083
+status: 3
+tags: []
+user_id: osama
