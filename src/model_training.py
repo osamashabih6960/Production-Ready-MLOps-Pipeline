@@ -2,6 +2,7 @@ import pandas as pd
 import joblib
 import mlflow
 import mlflow.sklearn
+import dagshub
 
 from pathlib import Path
 
@@ -19,6 +20,13 @@ from sklearn.metrics import (
 DATA_DIR = Path("data/processed")
 MODEL_DIR = Path("models")
 
+
+# Initialize DagsHub + MLflow
+dagshub.init(
+    repo_owner="osamashabih6960",
+    repo_name="Production-Ready-MLOps-Pipeline",
+    mlflow=True
+)
 
 mlflow.set_experiment("AI4I-Predictive-Maintenance")
 
@@ -251,3 +259,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
