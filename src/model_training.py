@@ -1,3 +1,4 @@
+
 import pandas as pd
 import joblib
 import mlflow
@@ -5,6 +6,7 @@ import mlflow.sklearn
 import dagshub
 
 from pathlib import Path
+from mlflow.models import infer_signature
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -17,19 +19,39 @@ from sklearn.metrics import (
 )
 
 
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
 DATA_DIR = Path("data/processed")
 MODEL_DIR = Path("models")
 
+REGISTERED_MODEL_NAME = "AI4I-Failure-Model"
 
-# Initialize DagsHub + MLflow
+EXPERIMENT_NAME = "AI4I-Predictive-Maintenance"
+
+DAGSHUB_REPO_OWNER = "osamashabih6960"
+DAGSHUB_REPO_NAME = "Production-Ready-MLOps-Pipeline"
+
+
+# ============================================================
+# INITIALIZE DAGSHUB + MLFLOW
+# ============================================================
+
 dagshub.init(
-    repo_owner="osamashabih6960",
-    repo_name="Production-Ready-MLOps-Pipeline",
+    repo_owner=DAGSHUB_REPO_OWNER,
+    repo_name=DAGSHUB_REPO_NAME,
     mlflow=True
 )
 
-mlflow.set_experiment("AI4I-Predictive-Maintenance")
+mlflow.set_experiment(
+    EXPERIMENT_NAME
+)
 
+
+# ============================================================
+# LOAD DATA
+# ============================================================
 
 def load_data():
 
@@ -49,14 +71,30 @@ def load_data():
         DATA_DIR / "y_test.csv"
     ).squeeze()
 
-    return X_train, X_test, y_train, y_test
+    return (
+        X_train,
+        X_test,
+        y_train,
+        y_test
+    )
 
 
-def evaluate_model(model, X_test, y_test):
+# ============================================================
+# EVALUATE MODEL
+# ============================================================
 
-    predictions = model.predict(X_test)
+def evaluate_model(
+    model,
+    X_test,
+    y_test
+):
+
+    predictions = model.predict(
+        X_test
+    )
 
     metrics = {
+
         "accuracy": accuracy_score(
             y_test,
             predictions
@@ -83,6 +121,10 @@ def evaluate_model(model, X_test, y_test):
 
     return metrics
 
+
+# ============================================================
+# TRAIN MODELS
+# ============================================================
 
 def train_models(
     X_train,
@@ -111,54 +153,115 @@ def train_models(
 
     for name, model in models.items():
 
-        print(f"\nTraining {name}...")
+        print(
+            f"\nTraining {name}..."
+        )
 
         with mlflow.start_run(
             run_name=name
         ):
 
-            # Train
+            # ------------------------------------------------
+            # TRAIN
+            # ------------------------------------------------
+
             model.fit(
                 X_train,
                 y_train
             )
 
-            # Evaluate
+            # ------------------------------------------------
+            # EVALUATE
+            # ------------------------------------------------
+
             metrics = evaluate_model(
                 model,
                 X_test,
                 y_test
             )
 
-            # Log parameters
+            # ------------------------------------------------
+            # LOG PARAMETERS
+            # ------------------------------------------------
+
             if name == "logistic_regression":
 
                 mlflow.log_params({
+
                     "model": name,
-                    "max_iter": 1000
+
+                    "max_iter": 1000,
+
+                    "random_state": 42
                 })
 
             elif name == "random_forest":
 
                 mlflow.log_params({
+
                     "model": name,
+
                     "n_estimators": 200,
+
+                    "random_state": 42,
+
                     "class_weight": "balanced"
                 })
 
-            # Log metrics
+            # ------------------------------------------------
+            # LOG METRICS
+            # ------------------------------------------------
+
             mlflow.log_metrics({
-                "accuracy": metrics["accuracy"],
-                "precision": metrics["precision"],
-                "recall": metrics["recall"],
-                "f1_score": metrics["f1_score"]
+
+                "accuracy":
+                    metrics["accuracy"],
+
+                "precision":
+                    metrics["precision"],
+
+                "recall":
+                    metrics["recall"],
+
+                "f1_score":
+                    metrics["f1_score"]
             })
 
-            # Log model
-            mlflow.sklearn.log_model(
-                model,
-                "model"
+            # ------------------------------------------------
+            # MLFLOW MODEL SIGNATURE
+            # ------------------------------------------------
+
+            input_example = (
+                X_train.head(5)
             )
+
+            predictions = model.predict(
+                input_example
+            )
+
+            signature = infer_signature(
+                input_example,
+                predictions
+            )
+
+            # ------------------------------------------------
+            # LOG MODEL
+            # ------------------------------------------------
+
+            mlflow.sklearn.log_model(
+
+                model,
+
+                "model",
+
+                signature=signature,
+
+                input_example=input_example
+            )
+
+            # ------------------------------------------------
+            # PRINT METRICS
+            # ------------------------------------------------
 
             print(
                 f"Accuracy : "
@@ -180,18 +283,39 @@ def train_models(
                 f"{metrics['f1_score']:.4f}"
             )
 
+            # ------------------------------------------------
+            # SAVE RESULTS
+            # ------------------------------------------------
+
             results[name] = {
+
                 "model": model,
-                "metrics": metrics
+
+                "metrics": metrics,
+
+                "run_id":
+                    mlflow.active_run().info.run_id
             }
 
     return results
 
 
-def save_best_model(results):
+# ============================================================
+# SAVE + REGISTER BEST MODEL
+# ============================================================
+
+def save_best_model(
+    results
+):
+
+    # --------------------------------------------------------
+    # FIND BEST MODEL
+    # --------------------------------------------------------
 
     best_model_name = max(
+
         results,
+
         key=lambda name:
         results[name]["metrics"]["f1_score"]
     )
@@ -203,6 +327,15 @@ def save_best_model(results):
     best_metrics = results[
         best_model_name
     ]["metrics"]
+
+    best_run_id = results[
+        best_model_name
+    ]["run_id"]
+
+
+    # --------------------------------------------------------
+    # SAVE MODEL LOCALLY
+    # --------------------------------------------------------
 
     MODEL_DIR.mkdir(
         parents=True,
@@ -219,23 +352,124 @@ def save_best_model(results):
         model_path
     )
 
-    print("\n==============================")
-    print("BEST MODEL")
-    print("==============================")
+
+    # --------------------------------------------------------
+    # MLFLOW MODEL URI
+    # --------------------------------------------------------
+
+    model_uri = (
+        f"runs:/{best_run_id}/model"
+    )
+
+
+    # --------------------------------------------------------
+    # REGISTER MODEL
+    # --------------------------------------------------------
 
     print(
-        f"Model: {best_model_name}"
+        "\nRegistering best model "
+        "with MLflow..."
+    )
+
+    registered_model = (
+        mlflow.register_model(
+
+            model_uri=model_uri,
+
+            name=REGISTERED_MODEL_NAME
+        )
+    )
+
+
+    # --------------------------------------------------------
+    # SET CHAMPION ALIAS
+    # --------------------------------------------------------
+
+    client = mlflow.MlflowClient()
+
+    client.set_registered_model_alias(
+
+        REGISTERED_MODEL_NAME,
+
+        "champion",
+
+        registered_model.version
+    )
+
+
+    # --------------------------------------------------------
+    # FINAL OUTPUT
+    # --------------------------------------------------------
+
+    print(
+        "\n=============================="
     )
 
     print(
-        f"F1 Score: "
+        "BEST MODEL"
+    )
+
+    print(
+        "=============================="
+    )
+
+    print(
+        f"Model       : "
+        f"{best_model_name}"
+    )
+
+    print(
+        f"F1 Score    : "
         f"{best_metrics['f1_score']:.4f}"
     )
 
     print(
-        f"Saved to: {model_path}"
+        f"Accuracy    : "
+        f"{best_metrics['accuracy']:.4f}"
     )
 
+    print(
+        f"Precision   : "
+        f"{best_metrics['precision']:.4f}"
+    )
+
+    print(
+        f"Recall      : "
+        f"{best_metrics['recall']:.4f}"
+    )
+
+    print(
+        f"Run ID      : "
+        f"{best_run_id}"
+    )
+
+    print(
+        f"Registry    : "
+        f"{REGISTERED_MODEL_NAME}"
+    )
+
+    print(
+        f"Version     : "
+        f"{registered_model.version}"
+    )
+
+    print(
+        "Alias       : champion"
+    )
+
+    print(
+        f"Saved to    : "
+        f"{model_path}"
+    )
+
+    print(
+        "==============================\n"
+    )
+
+
+# ============================================================
+# MAIN
+# ============================================================
 
 def main():
 
@@ -243,20 +477,36 @@ def main():
         "Loading processed data..."
     )
 
-    X_train, X_test, y_train, y_test = (
-        load_data()
-    )
-
-    results = train_models(
+    (
         X_train,
         X_test,
         y_train,
         y_test
+    ) = load_data()
+
+
+    results = train_models(
+
+        X_train,
+
+        X_test,
+
+        y_train,
+
+        y_test
     )
 
-    save_best_model(results)
 
+    save_best_model(
+        results
+    )
+
+
+# ============================================================
+# ENTRY POINT
+# ============================================================
 
 if __name__ == "__main__":
+
     main()
 
