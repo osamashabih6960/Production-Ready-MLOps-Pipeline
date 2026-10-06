@@ -1,37 +1,35 @@
 PROJECT FLOW — Production-Ready-MLOps-Pipeline
 ============================================================
 
+
 1. CREATE GITHUB REPOSITORY
 ---------------------------
 
 Repository:
+
     Production-Ready-MLOps-Pipeline
 
-    ↓
-
 Clone:
+
     git clone https://github.com/osamashabih6960/Production-Ready-MLOps-Pipeline.git
 
-    ↓
-
 Go inside:
+
     cd Production-Ready-MLOps-Pipeline
 
-    ↓
+Virtual Environment:
 
-Virtual environment:
     python -m venv .venv
 
-    ↓
-
 Activate:
+
     .venv\Scripts\activate
 
 
 ============================================================
 
-2. PROJECT FOLDER STRUCTURE
----------------------------
+2. PROJECT STRUCTURE
+--------------------
 
 Production-Ready-MLOps-Pipeline/
 │
@@ -55,16 +53,21 @@ Production-Ready-MLOps-Pipeline/
 │   └── best_model.pkl
 │
 ├── tests/
+│   └── test_data.py
+│
 ├── notebooks/
 ├── app/
 ├── k8s/
 ├── monitoring/
+│
 ├── .github/
 │   └── workflows/
+│       └── mlops.yml
+│
+├── .dvc/
 ├── requirements.txt
 ├── .gitignore
-├── dvc.yaml
-├── params.yaml
+├── .dvcignore
 └── README.md
 
 
@@ -74,12 +77,15 @@ Production-Ready-MLOps-Pipeline/
 ----------
 
 Dataset:
+
     AI4I 2020 Predictive Maintenance Dataset
 
 Location:
+
     data/raw/ai4i2020.csv
 
 Target:
+
     Machine failure
 
     0 → No Machine Failure
@@ -92,28 +98,26 @@ Target:
 -----------------
 
 File:
+
     src/data_ingestion.py
 
 Run:
+
     python src/data_ingestion.py
 
 Flow:
 
-    data/raw/ai4i2020.csv
-              ↓
-      data_ingestion.py
-              ↓
-         Read CSV
-              ↓
-      Validate Columns
-              ↓
-    data/processed/ai4i2020.csv
+    Raw Dataset
+        ↓
+    Read CSV
+        ↓
+    Validate Columns
+        ↓
+    Processed Dataset
 
-Purpose:
-    1. Read raw dataset
-    2. Validate required columns
-    3. Create processed directory
-    4. Save processed copy
+Output:
+
+    data/processed/ai4i2020.csv
 
 
 ============================================================
@@ -122,34 +126,34 @@ Purpose:
 ---------------------
 
 File:
+
     src/data_preprocessing.py
 
 Run:
+
     python src/data_preprocessing.py
 
 Flow:
 
-    data/processed/ai4i2020.csv
-              ↓
-         Load Dataset
-              ↓
+    Processed Dataset
+          ↓
     Remove unnecessary columns
-              ↓
+          ↓
     Remove leakage columns
-              ↓
-       Handle missing values
-              ↓
-      Convert Type → numerical
-              ↓
-       Separate X and y
-              ↓
-        Train/Test Split
-              ↓
-        Feature Scaling
-              ↓
-     Save processed datasets
+          ↓
+    Handle missing values
+          ↓
+    Convert categorical values
+          ↓
+    Separate X and y
+          ↓
+    Train/Test Split
+          ↓
+    StandardScaler
+          ↓
+    Save datasets
 
-Removed columns:
+Removed:
 
     UDI
     Product ID
@@ -159,39 +163,26 @@ Removed columns:
     OSF
     RNF
 
-Reason:
-
-    UDI / Product ID
-        → Identifier columns
-
-    TWF / HDF / PWF / OSF / RNF
-        → Failure-mode indicators
-        → Avoid target leakage
-
-Type conversion:
+Type Conversion:
 
     L → 0
     M → 1
     H → 2
 
-Train/Test Split:
+Split:
 
-    Training → 80%
-    Testing  → 20%
+    Train → 80%
+    Test  → 20%
 
     random_state = 42
     stratify = y
 
-Scaling:
-
-    StandardScaler
-
 Output:
 
-    data/processed/X_train.csv
-    data/processed/X_test.csv
-    data/processed/y_train.csv
-    data/processed/y_test.csv
+    X_train.csv
+    X_test.csv
+    y_train.csv
+    y_test.csv
 
 
 ============================================================
@@ -200,39 +191,31 @@ Output:
 -----------------
 
 File:
+
     src/model_training.py
 
 Run:
+
     python src/model_training.py
 
-Input:
+Models:
 
-    X_train.csv
-    X_test.csv
-    y_train.csv
-    y_test.csv
+    Logistic Regression
+    Random Forest
 
 Flow:
 
     Processed Data
           ↓
-    Load Training/Test Data
+    Train Models
           ↓
-    Train Multiple Models
+    Evaluate Models
           ↓
-       ┌───────────────┐
-       ↓               ↓
-    Logistic        Random
-    Regression      Forest
-       ↓               ↓
-    Evaluation      Evaluation
-       └───────┬───────┘
-               ↓
-        Compare Metrics
-               ↓
-        Select Best Model
-               ↓
-      models/best_model.pkl
+    Compare F1 Score
+          ↓
+    Select Best Model
+          ↓
+    models/best_model.pkl
 
 
 ============================================================
@@ -240,56 +223,10 @@ Flow:
 7. LOGISTIC REGRESSION
 ----------------------
 
-Model:
-    LogisticRegression
-
 Configuration:
+
     max_iter = 1000
     random_state = 42
-
-Output:
-
-    Training logistic_regression...
-
-    Accuracy : ...
-    Precision: ...
-    Recall   : ...
-    F1 Score : ...
-
-
-============================================================
-
-8. RANDOM FOREST
-----------------
-
-Model:
-    RandomForestClassifier
-
-Configuration:
-    n_estimators = 200
-    class_weight = "balanced"
-    random_state = 42
-
-Output:
-
-    Training random_forest...
-
-    Accuracy : ...
-    Precision: ...
-    Recall   : ...
-    F1 Score : ...
-
-
-============================================================
-
-9. MODEL SELECTION
-------------------
-
-Models:
-
-    Logistic Regression
-             VS
-    Random Forest
 
 Metrics:
 
@@ -298,24 +235,49 @@ Metrics:
     Recall
     F1 Score
 
-Selection:
 
-    Highest F1 Score
+============================================================
 
-Flow:
+8. RANDOM FOREST
+----------------
+
+Configuration:
+
+    n_estimators = 200
+    class_weight = "balanced"
+    random_state = 42
+
+Metrics:
+
+    Accuracy
+    Precision
+    Recall
+    F1 Score
+
+
+============================================================
+
+9. MODEL SELECTION
+------------------
+
+Selection Metric:
+
+    F1 Score
+
+Results:
 
     Logistic Regression
-            ↓
-        Calculate F1
-            ↓
+        F1 = 0.1772
+
     Random Forest
-            ↓
-        Calculate F1
-            ↓
-        Compare F1
-            ↓
-      Best F1 Model
-            ↓
+        F1 = 0.6667
+
+Best Model:
+
+    Random Forest
+
+Output:
+
     models/best_model.pkl
 
 
@@ -325,41 +287,29 @@ Flow:
 ------------------------------
 
 Experiment:
+
     AI4I-Predictive-Maintenance
 
-Purpose:
+Tracks:
 
-    Track experiments
-    Track parameters
-    Track metrics
-    Compare models
-    Store model artifacts
-
-Flow:
-
-    Model Training
-          ↓
-      MLflow Run
-          ↓
     Parameters
     Accuracy
     Precision
     Recall
     F1 Score
     Model Artifact
+
+Flow:
+
+    Model Training
           ↓
-       MLflow UI
+       MLflow
+          ↓
+    Experiment Tracking
 
-Each model gets a separate run:
-
-    Logistic Regression → MLflow Run
-    Random Forest       → MLflow Run
-
-Run:
+Local UI:
 
     mlflow ui
-
-Open:
 
     http://127.0.0.1:5000
 
@@ -371,33 +321,352 @@ Open:
 
 Purpose:
 
-    Track dataset versions separately from Git.
+    Track dataset versions separately
+    from Git.
 
 Dataset:
 
     data/raw/ai4i2020.csv
 
-If CSV is already tracked by Git:
-
-    git rm --cached data/raw/ai4i2020.csv
-
-Then:
+Command:
 
     dvc add data/raw/ai4i2020.csv
 
-DVC creates:
+Creates:
 
     data/raw/ai4i2020.csv.dvc
 
 Concept:
 
-    Git
-      ↓
-    Code + Configuration
-
-    DVC
-      ↓
-    Dataset Versioning
+    Git → Code + Configuration
+    DVC  → Dataset Versioning
 
 
+============================================================
+
+12. DAGSHUB INTEGRATION
+-----------------------
+
+Purpose:
+
+    Remote MLOps collaboration
+    MLflow tracking
+    Model management
+
+Flow:
+
+    Model Training
+          ↓
+       MLflow
+          ↓
+       DagsHub
+          ↓
+    Experiment Tracking
+
+
+============================================================
+
+13. MODEL REGISTRY
+------------------
+
+Registered Model:
+
+    AI4I-Failure-Model
+
+Flow:
+
+    Best Model
+        ↓
+    MLflow Registry
+        ↓
+    Model Version
+
+
+============================================================
+
+14. CHAMPION MODEL
+------------------
+
+Alias:
+
+    champion
+
+Model URI:
+
+    models:/AI4I-Failure-Model@champion
+
+Flow:
+
+    Model Version
+         ↓
+    champion
+         ↓
+    Production Model
+
+Validation:
+
+    Champion model loaded successfully.
+
+
+============================================================
+
+15. AUTOMATED TESTING
+---------------------
+
+Framework:
+
+    pytest
+
+File:
+
+    tests/test_data.py
+
+Tests:
+
+    1. Processed files exist
+    2. Train/Test row counts match
+    3. No missing values
+
+Run:
+
+    pytest tests/ -v
+
+
+============================================================
+
+16. GITHUB ACTIONS — CI/CD
+--------------------------
+
+Workflow:
+
+    .github/workflows/mlops.yml
+
+Triggers:
+
+    push → main
+    pull_request → main
+
+Flow:
+
+    Git Push
+       ↓
+    GitHub Actions
+       ↓
+    Setup Python 3.11
+       ↓
+    Install Dependencies
+       ↓
+    Run Tests
+       ↓
+    Model Training
+       ↓
+    MLflow / DagsHub
+
+
+============================================================
+
+17. DAGSHUB AUTHENTICATION
+--------------------------
+
+GitHub Secret:
+
+    DAGSHUB_USER_TOKEN
+
+Purpose:
+
+    Secure GitHub Actions
+    authentication with DagsHub.
+
+Important:
+
+    Token is stored in
+    GitHub Secrets.
+
+
+============================================================
+
+18. REQUIREMENTS MANAGEMENT
+---------------------------
+
+Main Dependencies:
+
+    numpy
+    pandas
+    scipy
+    scikit-learn
+    joblib
+    pytest
+    mlflow
+    dagshub
+    fastapi
+    pydantic
+    uvicorn
+    gunicorn
+    prometheus-fastapi-instrumentator
+
+Purpose:
+
+    Reproducible development
+    and CI/CD environment.
+
+
+============================================================
+
+19. CI/CD RESULT
+----------------
+
+Initial Issue:
+
+    ModuleNotFoundError:
+    No module named 'dagshub'
+
+Fix:
+
+    Added dagshub to requirements.txt
+
+Result:
+
+    GitHub Actions
+         ↓
+    Tests
+         ↓
+    Model Training
+         ↓
+    SUCCESS
+
+
+============================================================
+
+20. CURRENT MLOPS PIPELINE
+--------------------------
+
+    GitHub
+       ↓
+    GitHub Actions
+       ↓
+    Tests
+       ↓
+    Data Processing
+       ↓
+    Model Training
+       ↓
+    Model Evaluation
+       ↓
+    Best Model
+       ↓
+    MLflow
+       ↓
+    DagsHub
+       ↓
+    Model Registry
+       ↓
+    Champion Model
+
+
+============================================================
+
+21. CURRENT PROJECT STATUS
+--------------------------
+
+Completed:
+
+    GitHub Repository       ✓
+    Data Ingestion          ✓
+    Data Preprocessing      ✓
+    Model Training          ✓
+    Model Selection         ✓
+    MLflow                  ✓
+    DVC                     ✓
+    DagsHub                 ✓
+    Model Registry          ✓
+    Champion Model          ✓
+    Automated Testing       ✓
+    GitHub Actions          ✓
+    CI/CD                   ✓
+
+
+============================================================
+
+22. NEXT STAGE — DOCKER + FASTAPI
+---------------------------------
+
+Planned:
+
+    Champion Model
+          ↓
+        Docker
+          ↓
+      FastAPI
+          ↓
+    /predict API
+          ↓
+      Prediction
+
+
+============================================================
+
+23. FUTURE — MONITORING
+-----------------------
+
+    FastAPI
+       ↓
+    Prometheus
+       ↓
+    API Metrics
+
+Metrics:
+
+    Request Count
+    Request Latency
+    HTTP Status
+
+
+============================================================
+
+24. FUTURE — KUBERNETES
+-----------------------
+
+    Docker
+       ↓
+    Kubernetes
+       ↓
+    FastAPI
+       ↓
+    Production API
+
+
+============================================================
+
+25. FINAL PROJECT FLOW
+----------------------
+
+    GitHub
+       ↓
+    GitHub Actions
+       ↓
+    Tests
+       ↓
+    Data Processing
+       ↓
+    Model Training
+       ↓
+    MLflow + DagsHub
+       ↓
+    Model Registry
+       ↓
+    Champion Model
+       ↓
+    Docker
+       ↓
+    FastAPI
+       ↓
+    Monitoring
+       ↓
+    Kubernetes
+       ↓
+    Production
+
+
+============================================================
+END OF PROJECT FLOW
 ============================================================
